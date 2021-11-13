@@ -57,3 +57,8 @@ dkms.conf
 # Don't consider those
 **Libraries
 **MAX78000
+
+/**
+!.gitignore
+!/batteryless_camera/
+!/batteryless_camera/**

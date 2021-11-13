@@ -63,8 +63,8 @@
 #include "cnn.h"
 #include "sampledata.h"
 
-// #include "sx126x_commands.h"
-// #include "gpio.h"
+#include "sx126x_commands.h"
+#include "gpio.h"
 
 #define IMAGE_XRES  32
 #define IMAGE_YRES  32
@@ -81,8 +81,12 @@
 #define MXC_GPIO_PORT_RESET_LORA               MXC_GPIO0
 #define MXC_GPIO_PIN_RESET_LORA                MXC_GPIO_PIN_19
 
+#define MXC_GPIO_PORT_BUSY_LORA               MXC_GPIO1
+#define MXC_GPIO_PIN_BUSY_LORA                MXC_GPIO_PIN_6
+
 mxc_gpio_cfg_t gpio_interrupt;
 mxc_gpio_cfg_t gpio_nres_lora;
+mxc_gpio_cfg_t gpio_busy_lora;
 
 volatile uint32_t cnn_time; // Stopwatch
 
@@ -141,6 +145,12 @@ int main(void)
     gpio_nres_lora.func = MXC_GPIO_FUNC_OUT;
     gpio_nres_lora.vssel = MXC_GPIO_VSSEL_VDDIO;
     MXC_GPIO_Config(&gpio_nres_lora);
+
+    gpio_busy_lora.port = MXC_GPIO_PORT_BUSY_LORA;
+    gpio_busy_lora.mask = MXC_GPIO_PIN_BUSY_LORA;
+    gpio_busy_lora.pad = MXC_GPIO_PAD_PULL_UP;
+    gpio_busy_lora.func = MXC_GPIO_FUNC_IN;
+    MXC_GPIO_Config(&gpio_busy_lora);
 
 
     // Initialize the camera driver.
@@ -210,13 +220,13 @@ int main(void)
             MXC_GPIO_OutSet(gpio_nres_lora.port, gpio_nres_lora.mask);
             MXC_Delay(MSEC(1));
 
-            // SX126x_Init();
+            SX126x_Init();
 
-            // set_tx(868000000, LORA_BW_500, LORA_SF7, LORA_CR_4_5, LORA_PACKET_VARIABLE_LENGTH, 0x04, 14, RADIO_RAMP_200_US);
+            set_tx(868000000, LORA_BW_500, LORA_SF7, LORA_CR_4_5, LORA_PACKET_VARIABLE_LENGTH, 0x04, 14, RADIO_RAMP_200_US);
 
-            // uint8_t payload[4] = {'P', 'I', 'N', 'G'};
-            // // payload[0] = argmax + 48;
-            // SX126x_SendPayload(payload, 4, 0); // Be careful timeout
+            uint8_t payload[4] = {'P', 'I', 'N', 'G'};
+            // payload[0] = argmax + 48;
+            SX126x_SendPayload(payload, 4, 0); // Be careful timeout
 
             //SX126x_GetStatus();
             MXC_Delay(MSEC(20));

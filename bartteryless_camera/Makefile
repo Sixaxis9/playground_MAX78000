@@ -74,18 +74,22 @@ export CMSIS_ROOT
 
 # Source files for this test (add path to VPATH below)
 SRCS  = main.c
-SRCS += softmax.c cnn.C
+SRCS += softmax.c cnn.c
+# Adding LoRa src
+SRCS += device_specific_implementation.c sx126x_commands.c sx126x_hal.c
 
 # Where to find source files for this test
 VPATH=.
 VPATH += $(CMSIS_ROOT)/Device/Maxim/$(TARGET_UC)/Source
 VPATH += ./src
 VPATH += ./neural_net
+VPATH += ./SX1262_Drivers
 
 # Where to find header files for this test
 IPATH = .
 IPATH += ./include
 IPATH += ./neural_net
+IPATH += ./SX1262_Drivers
 
 # Enable assertion checking for development
 PROJ_CFLAGS+=-DMXC_ASSERT_ENABLE
