@@ -32,8 +32,8 @@
 * ownership rights.
 *******************************************************************************/
 
-// meme_net
-// Created using ./ai8xize.py --verbose --log --test-dir demos --prefix meme_net --checkpoint-file ./trained/meme_net-q.pth.tar --config-file networks/facenet_paper.yaml --device MAX78000 --compact-data --mexpress --softmax --overwrite
+// meme_net_presentation
+// Created using ./ai8xize.py --verbose --log --test-dir demos --prefix meme_net_presentation --checkpoint-file ./trained/memenet_presentation/meme_net-q.pth.tar --config-file networks/facenet.yaml --device MAX78000 --compact-data --mexpress --softmax --overwrite
 
 // DO NOT EDIT - regenerate this file instead!
 
@@ -262,7 +262,6 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50100a14) = 0x0000b800; // Layer control 2
   *((volatile uint32_t *) 0x50100614) = 0x010001b8; // Mask offset and count
   *((volatile uint32_t *) 0x50100694) = 0x0000001b; // TRAM ptr max
-  *((volatile uint32_t *) 0x50100794) = 0x00022000; // Post processing register
   *((volatile uint32_t *) 0x50100714) = 0xffffffff; // Mask and processor enables
 
   // Layer 1 group 1
@@ -274,7 +273,6 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50500a14) = 0x0000b800; // Layer control 2
   *((volatile uint32_t *) 0x50500614) = 0x010001b8; // Mask offset and count
   *((volatile uint32_t *) 0x50500694) = 0x0000001b; // TRAM ptr max
-  *((volatile uint32_t *) 0x50500794) = 0x00022000; // Post processing register
   *((volatile uint32_t *) 0x50500714) = 0xffffffff; // Mask and processor enables
 
   // Layer 2 group 0

@@ -90,9 +90,12 @@ mxc_gpio_cfg_t gpio_busy_lora;
 
 volatile uint32_t cnn_time; // Stopwatch
 
+int8_t img_to_nn[IMAGE_XRES*IMAGE_YRES*N_CH];
+
 // *****************************************************************************
 int main(void)
 {
+    LED_On(LED1);
     int ret = 0;
     int slaveAddress;
     int id;
@@ -155,7 +158,7 @@ int main(void)
 
     // Initialize the camera driver.
     camera_init(CAMERA_FREQ);
-    
+
     // Setup the camera image dimensions, pixel format and data aquiring details.
     ret = camera_setup(IMAGE_XRES, IMAGE_YRES, PIXFORMAT_RGB888, FIFO_THREE_BYTE, USE_DMA, dma_channel);
     
@@ -165,7 +168,12 @@ int main(void)
     // }
     
     // Start off the first camera image frame.
+    
+    MXC_Delay(MSEC(200));
+
     camera_start_capture_image();
+
+
     LED_On(LED1);
     while (1) {
         // Check if image is aquired.
@@ -182,12 +190,31 @@ int main(void)
             Camera_Power(0);
             LED_Off(LED1);
 
-            for(int i=0; i<IMAGE_XRES*N_CH; i+=N_CH){
+            // MXC_Delay(SEC(2));
+
+            for(int i=0; i<IMAGE_XRES; i+=1){
             	for(int f=0; f<IMAGE_YRES*N_CH; f+=N_CH){
-            		image_bw[i/(N_CH)*IMAGE_YRES + f/(N_CH)] = (int)  ( ((float) raw[i*IMAGE_XRES + f])*0.2989 + ((float) raw[i*IMAGE_XRES + f + 1])*0.5870 + ((float) raw[i*IMAGE_XRES + f + 2])*0.1140) - 128;
+            		image_bw[i*IMAGE_YRES + f/(N_CH)] = (int8_t)  ( ((float) raw[i*IMAGE_XRES*3 + f])*0.29 + ((float) raw[i*IMAGE_XRES*3 + f + 1])*0.58 + ((float) raw[i*IMAGE_XRES*3 + f + 2])*0.11) - 128;
+                    // printf("%d,", image_bw[i*IMAGE_YRES + f/(N_CH)]);
+                    // printf("%d,%d,%d,", raw[i*IMAGE_XRES*3 + f], raw[i*IMAGE_XRES*3 + f + 1], raw[i*IMAGE_XRES*3 + f + 2]);
+                    // fflush(stdout);
             	}
             }
 
+            // printf("\n");
+            
+
+            // for (int i = 0; i < IMAGE_XRES*IMAGE_YRES*N_CH; i++)
+            // {
+            //     img_to_nn[i] = (int8_t) (((int16_t) raw[i])-128);
+            //     // printf("%d,", raw[i]);
+            //     // fflush(stdout);
+            // }
+            
+            // fflush(stdout);
+            // while(1);
+
+            // memcpy((uint8_t *) 0x50400000, img_to_nn, IMAGE_XRES*IMAGE_YRES*N_CH);
             memcpy((uint8_t *) 0x50400000, image_bw, IMAGE_XRES*IMAGE_YRES);
 
             cnn_start(); // Start CNN processing
@@ -200,22 +227,24 @@ int main(void)
             cnn_unload((uint32_t *) ml_data);
             softmax_q17p14_q15((const q31_t *) ml_data, CNN_NUM_OUTPUTS, ml_softmax);
 
-            uint8_t argmax = 1;
-            uint32_t max_temp = ml_data[0];
+            uint8_t argmax = 0;
+            int max_temp = (1000 * ml_softmax[0] + 0x4000) >> 15;
 
-            printf("Classification results:\n");
+            // printf("Classification results:\n");
             for (int i = 0; i < CNN_NUM_OUTPUTS; i++) {
                 digs = (1000 * ml_softmax[i] + 0x4000) >> 15;
-                tens = digs % 10;
-                digs = digs / 10;
-                printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
 
-                if(max_temp < ml_data[i]){
-                	max_temp = ml_data[i];
+                if(max_temp < digs){
+                	max_temp = digs;
                 	argmax = i;
                 }
+
+                tens = digs % 10;
+                digs = digs / 10;
+                // printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
             }
 
+            printf("%d\n", argmax);
             // Send stuff with LoRa
             MXC_GPIO_OutSet(gpio_nres_lora.port, gpio_nres_lora.mask);
             MXC_Delay(MSEC(1));
@@ -225,11 +254,11 @@ int main(void)
             set_tx(868000000, LORA_BW_500, LORA_SF7, LORA_CR_4_5, LORA_PACKET_VARIABLE_LENGTH, 0x04, 14, RADIO_RAMP_200_US);
 
             uint8_t payload[4] = {'P', 'I', 'N', 'G'};
-            // payload[0] = argmax + 48;
+            payload[0] = argmax + 48;
             SX126x_SendPayload(payload, 4, 0); // Be careful timeout
 
             //SX126x_GetStatus();
-            MXC_Delay(MSEC(20));
+            MXC_Delay(MSEC(10));
             //SX126x_GetStatus();
 
             MXC_GPIO_OutClr(gpio_nres_lora.port, gpio_nres_lora.mask);
